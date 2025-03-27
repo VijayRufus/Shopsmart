@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        #payment-form { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background: green; color: white; border: none; cursor: pointer; }
+        button:hover { background: darkgreen; }
+    </style>
+</head>
+<body>
+    <h2>Complete Your Payment</h2>
+    <form id="payment-form">
+        <div id="card-element"></div>
+        <button id="pay-button" type="submit">Pay Now</button>
+        <p id="payment-status" style="color: red;"></p>
+    </form>
+
+    <script>
+        const stripe = Stripe("sk_test_51R6wpd4d35aYZEmdh4yMxclkPBCOGBU4EzvUY6eOSZo8uyyPMQYmkqdBeHrWLrnvseQrplTZrpIOczv5yqZvIIFG00kBIEZnl7"); // Replace with your Stripe public key
+        let card, clientSecret, orderId;
+
+        async function initializePayment() {
+            const response = await fetch("http://localhost:5001/create-payment-intent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    items: [{ name: "Watermelon", price: 4.99 }, { name: "Chicken", price: 4.99 }], 
+                    totalAmount: 9.98 
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                clientSecret = data.clientSecret;
+                orderId = data.orderId;
+                console.log("Client Secret:", clientSecret);
+            } else {
+                document.getElementById("payment-status").textContent = "Failed to initialize payment.";
+                return;
+            }
+
+            const elements = stripe.elements();
+            card = elements.create("card");
+            card.mount("#card-element");
+        }
+
+        document.getElementById("payment-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!clientSecret || !card) {
+                alert("Payment initialization failed.");
+                return;
+            }
+
+            const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: { card: card }
+            });
+
+            if (error) {
+                document.getElementById("payment-status").textContent = "Payment failed! Try again.";
+            } else {
+                await fetch("http://localhost:5001/confirm-payment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ orderId, paymentStatus: "Paid" })
+                });
+
+                alert("Payment successful!");
+                window.location.href = "public/success.html"; // Redirect to a success page
+            }
+        });
+
+        initializePayment();
+    </script>
+</body>
+</html>
