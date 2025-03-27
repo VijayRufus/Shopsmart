@@ -20,14 +20,3 @@ Secure Payment Gateway: Multiple payment options with secure transactions.
 
 Admin Panel: Manage products, categories, and user activities efficiently.
 
-Technologies Used
-
-Frontend: React.js, Tailwind CSS
-
-Backend: Node.js, Express.js
-
-Database: MongoDB
-
-Authentication: JWT (JSON Web Tokens)
-
-Payment Integration: Stripe/PayPal# Shopsmart
